@@ -1,0 +1,9 @@
+# IDE関
+.vscode/
+.idea/
+
+# Go build outputs
+*.test
+
+# Environment variables
+# .env
