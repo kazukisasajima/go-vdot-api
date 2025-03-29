@@ -14,6 +14,9 @@ import (
 type IUserUsecase interface {
 	SignUp(user model.User) (model.UserResponse, error)
 	LogIn(user model.User) (string, error)
+
+	UpdateUser(user model.User) (model.UserResponse, error)
+	DeleteUser(userId uint) error
 }
 
 type userUsecase struct {
@@ -59,6 +62,8 @@ func (uu *userUsecase) LogIn(user model.User) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": storedUser.ID,
+		"name":    storedUser.Name,
+		"email":   storedUser.Email,
 		"exp":     time.Now().Add(time.Hour * 12).Unix(),
 	})
 	tokenString, errerr := token.SignedString([]byte(os.Getenv("SECRET_KEY")))
@@ -66,4 +71,47 @@ func (uu *userUsecase) LogIn(user model.User) (string, error) {
 		return "", errerr
 	}
 	return tokenString, nil
+}
+
+func (uu *userUsecase) UpdateUser(user model.User) (model.UserResponse, error) {
+	storedUser := model.User{}
+	if err := uu.ur.GetUserByID(&storedUser, user.ID); err != nil {
+		return model.UserResponse{}, err
+	}
+
+	// 名前・メール・パスワードを個別に更新
+	if user.Name != "" {
+		storedUser.Name = user.Name
+	}
+	if user.Email != "" {
+		storedUser.Email = user.Email
+	}
+	if user.Password != "" {
+		hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
+		if err != nil {
+			return model.UserResponse{}, err
+		}
+		storedUser.Password = string(hash)
+	}
+
+	// ユーザー情報更新
+	if err := uu.ur.UpdateUser(&storedUser); err != nil {
+		return model.UserResponse{}, err
+	}
+
+	// 更新後のユーザー情報を返す
+	resUser := model.UserResponse{
+		ID:    storedUser.ID,
+		Name:  storedUser.Name,
+		Email: storedUser.Email,
+	}
+	return resUser, nil
+}
+
+
+func (uu *userUsecase) DeleteUser(userId uint) error {
+	if err := uu.ur.DeleteUser(userId); err != nil {
+		return err
+	}
+	return nil
 }

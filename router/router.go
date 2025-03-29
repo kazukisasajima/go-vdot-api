@@ -27,13 +27,26 @@ func NewRouter(uc controller.IUserController, vc controller.IVdotController) *ec
 		CookieSameSite: http.SameSiteDefaultMode,
 		//CookieMaxAge:   60,
 	}))
-	// ユーザー用エンドポイント
+	// CSRFトークンを取得するためのエンドポイント
 	auth := router.Group("/api/auth")
 	auth.POST("/signup", uc.SignUp)
 	auth.POST("/login", uc.LogIn)
 	auth.POST("/logout", uc.LogOut)
 	auth.GET("/csrf", uc.CsrfToken)
+	auth.Use(mymiddleware.JWTMiddleware())
 
+	// ログイン確認用エンドポイント
+	authCheck := auth.Group("")
+	authCheck.Use(mymiddleware.JWTMiddleware())
+	authCheck.GET("/check", mymiddleware.CheckAuth)
+
+	// ユーザー情報取得用エンドポイント
+	user := router.Group("/api/user")
+	user.Use(mymiddleware.JWTMiddleware())
+	user.PATCH("", uc.UpdateUser)
+	user.DELETE("", uc.DeleteUser)
+	
+	// Vdot関連のエンドポイント
 	vdot := router.Group("/api/vdots")
 	vdot.Use(mymiddleware.JWTMiddleware())
 	vdot.POST("", vc.CreateVdot)

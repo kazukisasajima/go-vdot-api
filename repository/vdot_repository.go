@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"go_vdot_api/model"
 
 	"gorm.io/gorm"
@@ -42,7 +41,7 @@ func (vr *vdotRepository) UpdateVdot(vdot *model.Vdot, userId uint, vdotId uint)
 		return result.Error
 	}
 	if result.RowsAffected < 1 {
-		return fmt.Errorf("object does not exist")
+		return gorm.ErrRecordNotFound
 	}
 	return nil
 }

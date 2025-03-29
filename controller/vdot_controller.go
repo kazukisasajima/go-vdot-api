@@ -1,13 +1,12 @@
 package controller
 
 import (
-	"fmt"
+	"go_vdot_api/middleware"
 	"go_vdot_api/model"
 	"go_vdot_api/usecase"
 	"net/http"
 	"strconv"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
 
@@ -28,17 +27,17 @@ func NewVdotController(vu usecase.IVdotUsecase) IVdotController {
 }
 
 func (vc *vdotController) CreateVdot(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	fmt.Printf("User from JWT: %+v\n", user)
-	claims := user.Claims.(jwt.MapClaims)
-	userId := claims["user_id"].(float64)
+	userClaims, err := middleware.GetUserClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, err.Error())
+	}
 
 	vdot := model.Vdot{}
 	if err := c.Bind(&vdot); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	vdot.UserId = uint(userId)
+	vdot.UserId = userClaims.UserID
 	vdotRes, err := vc.vu.CreateVdot(vdot)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -47,13 +46,14 @@ func (vc *vdotController) CreateVdot(c echo.Context) error {
 }
 
 func (vc *vdotController) GetVdotByID(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	userId := claims["user_id"].(float64)
+	userClaims, err := middleware.GetUserClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, err.Error())
+	}
 
 	id := c.Param("id")
 	vdotId, _ := strconv.Atoi(id)
-	vdotRes, err := vc.vu.GetVdotByID(uint(userId), uint(vdotId))
+	vdotRes, err := vc.vu.GetVdotByID(userClaims.UserID, uint(vdotId))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -61,11 +61,11 @@ func (vc *vdotController) GetVdotByID(c echo.Context) error {
 }
 
 func (vc *vdotController) UpdateVdot(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	userId := claims["user_id"].(float64)
+	userClaims, err := middleware.GetUserClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, err.Error())
+	}
 
-	// パスから id を取得（重要）
 	id := c.Param("id")
 	vdotId, err := strconv.Atoi(id)
 	if err != nil {
@@ -77,7 +77,7 @@ func (vc *vdotController) UpdateVdot(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 	
-	vdotRes, err := vc.vu.UpdateVdot(vdot ,uint(userId), uint(vdotId))
+	vdotRes, err := vc.vu.UpdateVdot(vdot , userClaims.UserID, uint(vdotId))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
