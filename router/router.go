@@ -12,6 +12,8 @@ import (
 
 func NewRouter(uc controller.IUserController, vc controller.IVdotController) *echo.Echo {
 	router := echo.New()
+	router.Use(mymiddleware.CustomRecovery())        // パニック対策
+	router.Use(mymiddleware.CustomRequestLogger())   // ステータス・IPなどログ出力	
 	router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:3000", os.Getenv("FE_URL")},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept,
@@ -50,8 +52,9 @@ func NewRouter(uc controller.IUserController, vc controller.IVdotController) *ec
 	vdot := router.Group("/api/vdots")
 	vdot.Use(mymiddleware.JWTMiddleware())
 	vdot.POST("", vc.CreateVdot)
-	vdot.GET("/:id", vc.GetVdotByID)
-	vdot.PUT("/:id", vc.UpdateVdot)
+	vdot.GET("", vc.GetVdot)
+	vdot.PATCH("/:id", vc.UpdateVdot)
+	vdot.GET("/value", vc.GetUserVdotValue)
 
 	return router
 }

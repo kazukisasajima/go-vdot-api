@@ -43,6 +43,7 @@ func (uc *userController) SignUp(c echo.Context) error {
 }
 
 func (uc *userController) LogIn(c echo.Context) error {
+	logger.Info("テスト")
 	user := model.User{}
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())

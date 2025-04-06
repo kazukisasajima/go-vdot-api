@@ -9,7 +9,7 @@ import (
 
 type IVdotRepository interface {
 	CreateVdot(vdot *model.Vdot) error
-	GetVdotByID(vdot *model.Vdot, userId uint, vdotId uint) error
+	GetVdot(vdot *model.Vdot, userId uint) error
 	UpdateVdot(vdot *model.Vdot, userId uint, vdotId uint) error
 }
 
@@ -28,8 +28,8 @@ func (vr *vdotRepository) CreateVdot(vdot *model.Vdot) error {
 	return nil
 }
 
-func (vr *vdotRepository) GetVdotByID(vdot *model.Vdot, userId uint, vdotId uint) error {
-	if err := vr.db.Joins("User").Where("user_id = ?", userId).First(vdot, vdotId).Error; err != nil {
+func (vr *vdotRepository) GetVdot(vdot *model.Vdot, userId uint) error {
+	if err := vr.db.Joins("User").Where("user_id = ?", userId).First(vdot).Error; err != nil {
 		return err
 	}
 	return nil
