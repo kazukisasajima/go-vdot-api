@@ -1,57 +1,72 @@
 package logger
 
 import (
+	"fmt"
 	"os"
+	"time"
 
-	"go.uber.org/zap"
+	"github.com/labstack/echo/v4"
 )
 
-var (
-	ZapLogger        *zap.Logger
-	zapSugaredLogger *zap.SugaredLogger
+// ANSIカラーコード
+const (
+	green  = "\033[32m"
+	blue   = "\033[34m"
+	yellow = "\033[33m"
+	red    = "\033[31m"
+	reset  = "\033[0m"
 )
 
-func init() {
-	cfg := zap.NewProductionConfig()
-	logFile := os.Getenv("APP_LOG_FILE")
-	if logFile != "" {
-		cfg.OutputPaths = []string{"stderr", logFile}
+func Info(format string, a ...interface{}) {
+	printWithColor(green, "INFO", format, a...)
+}
+
+func Warn(format string, a ...interface{}) {
+	printWithColor(yellow, "WARN", format, a...)
+}
+
+func Error(format string, a ...interface{}) {
+	printWithColor(red, "ERROR", format, a...)
+}
+
+func Debug(format string, a ...interface{}) {
+	printWithColor(blue, "DEBUG", format, a...)
+}
+
+func printWithColor(color string, level string, format string, a ...interface{}) {
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	message := fmt.Sprintf(format, a...)
+	fmt.Fprintf(os.Stdout, "%s[%s] [%s] %s%s\n", color, timestamp, level, message, reset)
+}
+
+func RequestLogger() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			start := time.Now()
+			err := next(c) // ここで実行（中でエラーが起きることもある）
+			stop := time.Now()
+
+			status := c.Response().Status
+			if err != nil {
+				if he, ok := err.(*echo.HTTPError); ok {
+					status = he.Code // 明示的に HTTPError のコードにする
+				}
+			}
+
+			method := c.Request().Method
+			path := c.Path()
+			latency := stop.Sub(start)
+
+			switch {
+			case status >= 500:
+				Error("%s %s %d (%s)", method, path, status, latency)
+			case status >= 400:
+				Warn("%s %s %d (%s)", method, path, status, latency)
+			default:
+				Info("%s %s %d (%s)", method, path, status, latency)
+			}
+
+			return err
+		}
 	}
-
-	ZapLogger = zap.Must(cfg.Build())
-	if os.Getenv("GO_ENV") == "dev" {
-		ZapLogger = zap.Must(zap.NewDevelopment())
-	}
-	zapSugaredLogger = ZapLogger.Sugar()
-}
-
-func Sync() {
-	err := zapSugaredLogger.Sync()
-	if err != nil {
-		zap.Error(err)
-	}
-}
-
-func Info(msg string, keysAndValues ...interface{}) {
-	zapSugaredLogger.Infow(msg, keysAndValues...)
-}
-
-func Debug(msg string, keysAndValues ...interface{}) {
-	zapSugaredLogger.Debugw(msg, keysAndValues...)
-}
-
-func Warn(msg string, keysAndValues ...interface{}) {
-	zapSugaredLogger.Warnw(msg, keysAndValues...)
-}
-
-func Error(msg string, keysAndValues ...interface{}) {
-	zapSugaredLogger.Errorw(msg, keysAndValues...)
-}
-
-func Fatal(msg string, keysAndValues ...interface{}) {
-	zapSugaredLogger.Fatalw(msg, keysAndValues...)
-}
-
-func Panic(msg string, keysAndValues ...interface{}) {
-	zapSugaredLogger.Panicw(msg, keysAndValues...)
 }

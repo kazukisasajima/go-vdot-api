@@ -8,7 +8,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	// "time"
 
 	"go_vdot_api/pkg/logger"
 )
@@ -132,23 +131,6 @@ func (vu *vdotUsecase) GetUserVdotValue(userId uint) (map[string]interface{}, er
 
 	return data, nil
 }
-
-// func TimeUnitConvert(vdot model.Vdot) (float64, error) {
-// 	duration, err := time.ParseDuration(vdot.Time)
-// 	if err != nil {
-// 		return 0, fmt.Errorf("invalid time format: %v", err)
-// 	}
-
-// 	hours := duration.Hours()
-// 	minutes := duration.Minutes() - (hours * 60)
-// 	seconds := duration.Seconds() - (hours * 3600) - (minutes * 60)
-// 	timeInMinutes := (hours * 60) + minutes + (seconds / 60)
-
-// 	if timeInMinutes < 0 {
-// 		return 0, fmt.Errorf("invalid time value")
-// 	}
-// 	return timeInMinutes, nil
-// }
 
 func TimeUnitConvert(vdot model.Vdot) (float64, error) {
 	tokens := strings.Split(vdot.Time, ":")

@@ -4,16 +4,16 @@ import (
 	"go_vdot_api/controller"
 	"net/http"
 	"os"
+	"go_vdot_api/pkg/logger"
 
 	mymiddleware "go_vdot_api/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func NewRouter(uc controller.IUserController, vc controller.IVdotController) *echo.Echo {
+func NewRouter(uc controller.IUserController, vc controller.IVdotController, wc controller.IWorkoutController) *echo.Echo {
 	router := echo.New()
-	router.Use(mymiddleware.CustomRecovery())        // パニック対策
-	router.Use(mymiddleware.CustomRequestLogger())   // ステータス・IPなどログ出力	
+	router.Use(logger.RequestLogger())
 	router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:3000", os.Getenv("FE_URL")},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept,
@@ -55,6 +55,13 @@ func NewRouter(uc controller.IUserController, vc controller.IVdotController) *ec
 	vdot.GET("", vc.GetVdot)
 	vdot.PATCH("/:id", vc.UpdateVdot)
 	vdot.GET("/value", vc.GetUserVdotValue)
+
+	// Workout関連のエンドポイント
+	workout := router.Group("/api/workouts")
+	workout.Use(mymiddleware.JWTMiddleware())
+	workout.POST("", wc.CreateWorkout)
+	workout.GET("", wc.GetWorkoutPerMonth)
+	workout.PATCH("/:id", wc.UpdateWorkout)
 
 	return router
 }
