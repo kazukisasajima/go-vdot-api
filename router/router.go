@@ -11,7 +11,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func NewRouter(uc controller.IUserController, vc controller.IVdotController, wc controller.IWorkoutController) *echo.Echo {
+func NewRouter(uc controller.IUserController, vc controller.IVdotController, wc controller.IWorkoutController, sec controller.ISpecialtyEventController) *echo.Echo {
 	router := echo.New()
 	router.Use(logger.RequestLogger())
 	router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -62,6 +62,13 @@ func NewRouter(uc controller.IUserController, vc controller.IVdotController, wc 
 	workout.POST("", wc.CreateWorkout)
 	workout.GET("", wc.GetWorkoutPerMonth)
 	workout.PATCH("/:id", wc.UpdateWorkout)
+
+	// SpecialtyEvent関連のエンドポイント
+	specialtyEvent := router.Group("/api/specialty_events")
+	specialtyEvent.Use(mymiddleware.JWTMiddleware())
+	specialtyEvent.POST("", sec.CreateSpecialtyEvent)
+	specialtyEvent.GET("", sec.GetSpecialtyEvent)
+	specialtyEvent.PATCH("/:id", sec.UpdateSpecialtyEvent)
 
 	return router
 }
